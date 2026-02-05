@@ -14,7 +14,7 @@ def get_db():
 def index():
     return "Welcome to the API"
 
-if '__name__' == '__main__':
+if __name__ == '__main__':
     app.run(debug=True)
 
 
@@ -148,6 +148,7 @@ def get_products():
 
     products_list = [{'id': row['id'], 'name': row['name'], 'description': row['description'], 'price': row['price'], 'category_id': row['category_id']} for row in products]
     return jsonify(products_list), 200
+
 @app.route('/api/categories', methods=['GET'])
 def get_categories():
         conn = get_db()
@@ -254,3 +255,24 @@ def delete_cart_by_id(cart_id):
     affected_rows = cursor.rowcount
     conn.close()
     return affected_rows
+
+@app.route('/api/cartlist', methods=['POST'])
+def add_to_cart():
+    data = request.get_json()
+    cart_id = data.get('cart_id')
+    product_id = data.get('product_id')
+    quantity = data.get('quantity', 1)
+
+    if not cart_id or not product_id:
+        return jsonify({'error': 'Cart ID and Product ID are required'}), 400
+
+    conn = get_db()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("INSERT INTO cartlist (cart_id, product_id, quantity) VALUES (?, ?, ?)", (cart_id, product_id, quantity))
+        conn.commit()
+        return jsonify({'message': 'Product added to cart successfully'}), 201
+    finally:
+        conn.close()
+
+
