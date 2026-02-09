@@ -14,8 +14,7 @@ def get_db():
 def index():
     return "Welcome to the API"
 
-if __name__ == '__main__':
-    app.run(debug=True)
+
 
 
 
@@ -45,24 +44,16 @@ def create_product():
 
 
 
-@app.route('/api/products', methods=['GET'])
-def get_products_v2():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM products")
-    products = cursor.fetchall()
-    conn.close()
-
-    products_list = [{'id': row['id'], 'name': row['name'], 'description': row['description'], 'price': row['price'], 'category_id': row['category_id']} for row in products]
-    return jsonify(products_list), 200
-
 
 
 @app.route('/api/products/<int:id>', methods=['GET','DELETE'])
 def handle_Product(id):
     if request.method == 'GET':
         product = get_product_by_id(id)
-
+        if product:
+            return jsonify(dict(product)), 200
+        else:
+            return jsonify({'error': 'Product not found'}), 404
     elif request.method == 'DELETE':
         affected_rows = delete_product_by_id(id)
         if affected_rows > 0:
@@ -88,7 +79,7 @@ def delete_product_by_id(product_id):
 
 
 
-@app.route('/api/products', methods=['PATCH'])
+@app.route('/api/products/<int:id>  ', methods=['PATCH'])
 def update_product(id):
     new_data = request.get_json()
     fields_to_update = ['name', 'price', 'description', 'category_id']
@@ -108,7 +99,8 @@ def update_product(id):
     query = f"UPDATE products SET {', '.join(updates)} WHERE id = ?"
 
     conn = get_db()
-    cursor = conn.execute(query, tuple(values))
+    cursor = conn.cursor()
+    cursor.execute(query, values)
     conn.commit()
     conn.close()
 
@@ -269,10 +261,12 @@ def add_to_cart():
     conn = get_db()
     cursor = conn.cursor()
     try:
-        cursor.execute("INSERT INTO cartlist (cart_id, product_id, quantity) VALUES (?, ?, ?)", (cart_id, product_id, quantity))
+        cursor.execute("INSERT INTO cart_items (cart_id, product_id, quantity) VALUES (?, ?, ?)", (cart_id, product_id, quantity))
         conn.commit()
         return jsonify({'message': 'Product added to cart successfully'}), 201
     finally:
         conn.close()
 
 
+if __name__ == '__main__':
+    app.run(debug=True)
